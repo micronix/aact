@@ -1,0 +1,16 @@
+public:
+    encoding: utf8
+    adapter: postgresql
+    host: localhost
+    port: 5432
+    database: aact_public
+    username: developer
+    password: CCi3411
+staging:
+    encoding: utf8
+    adapter: postgresql
+    host: localhost
+    port: 5432
+    database: aact_staging
+    username: developer
+    password: CCi3411

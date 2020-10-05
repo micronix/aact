@@ -108,10 +108,8 @@ module Util
         load_event.problems="DID NOT UPDATE PUBLIC DATABASE." + load_event.problems
         load_event.save!
       end
-      db_mgr.grant_db_privs
       load_event.complete({:study_counts=>study_counts})
       create_flat_files
-      Admin::PublicAnnouncement.clear_load_message
     end
 
     def remove_indexes_and_constraints
@@ -218,16 +216,6 @@ module Util
       end
     end
 
-    def take_snapshot
-      log("creating downloadable versions of the database...")
-      begin
-        db_mgr.dump_database
-        Util::FileManager.new.save_static_copy
-      rescue => error
-        load_event.add_problem("#{error.message} (#{error.class} #{error.backtrace}")
-      end
-    end
-
     def send_notification
       if !AACT::Application::AACT_OWNER_EMAIL.nil?
         log("sending email notification...")
@@ -270,12 +258,24 @@ module Util
       end
     end
 
+    # STEP 3: create a downloadable version of the database
+    def take_snapshot
+      log("creating downloadable versions of the database...")
+      begin
+        db_mgr.dump_database
+        Util::FileManager.new.save_static_copy
+      rescue => error
+        load_event.add_problem("#{error.message} (#{error.class} #{error.backtrace}")
+      end
+    end
+
+    # STEP 4: restore the database on the remote server
     def refresh_public_db
       log('refreshing public db...')
-      # recreate public db from back-end db
       if sanity_checks_ok?
         submit_public_announcement("The AACT database is temporarily unavailable because it's being updated.")
         db_mgr.refresh_public_db
+        Admin::PublicAnnouncement.clear_load_message
         return true
       else
         load_event.save!
